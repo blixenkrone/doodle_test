@@ -15,6 +15,11 @@
 
 
 ## API design
+
+1. Create a user
+POST /users
+{name}
+
 1. Create available timeslot
 POST /timeslots
 {
@@ -46,22 +51,6 @@ Docs:
 GET /timeslots/calendar?
 [{ id, datetime_start, datetime_end, attendees }]
 
-## E/R
-- Timeslot
-{
-  id uuid,
-  time_start time,
-  time_end time,
-}
-
-- Meeting
-{
-  timeslot_id uuid,
-  title, descr string,
-  participants string,
-  url string,
-}
-
 
 ## Implementation details
 - Avoid clashing meetings, ie. data races
@@ -71,12 +60,14 @@ GET /timeslots/calendar?
 - No authentication considered
 - Sharable URLs are void
 - No TZ, all is UTC
+- The description was a little vague in this area, but I assumed that the users doing time slot management, were not the same users, that would do a meeting scheduling.
 
 ## TODO
 - API endpoint docs
 - Make mermaid diagram
 - Implement solution
 
-## Considerations
-- Reminders, max meetings
+## Future considerations
+- Meeting reminders
+- Max meetings per day within a timeslot to allow for breaks etc.
 

@@ -16,6 +16,7 @@ import (
 	_ "github.com/blixenkrone/doodle/docs" // Required for swaggo to find the generated docs.
 	"github.com/blixenkrone/doodle/internal/onboarding"
 	"github.com/blixenkrone/doodle/internal/storage"
+	"github.com/blixenkrone/doodle/internal/timeslots"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/gorilla/mux"
@@ -86,14 +87,20 @@ func main() {
 
 	// Handlers
 	onboardingH := onboarding.NewHTTPHandler(log, store)
+	timeslotsH := timeslots.NewHTTPHandler(log, store)
 
 	// Onboarding
 	srv.AddRoute("/users", onboardingH.CreateUser(), http.MethodPost)
 
 	// Timeslot management
-	// srv.AddRoute("/timeslots", meetings.RegisterTimeslot(), http.MethodPost)
-	// srv.AddRoute("/meetings", meetings.meetings(), http.MethodPost)
-	// srv.AddRoute("/meetings/{meetings}", meetings.Overview(), http.MethodGet)
+	srv.AddRoute("/timeslots", timeslotsH.CreateTimeslot(), http.MethodPost)
+	srv.AddRoute("/timeslots/allotted", timeslotsH.GetAllotted(), http.MethodGet)
+	srv.AddRoute("/timeslots/calendar", timeslotsH.GetCalendar(), http.MethodGet)
+	srv.AddRoute("/timeslots/{id}", timeslotsH.UpdateTimeslot(), http.MethodPatch)
+	srv.AddRoute("/timeslots/{id}", timeslotsH.DeleteTimeslot(), http.MethodDelete)
+
+	// Meeting scheduling
+	srv.AddRoute("/timeslots/meeting", timeslotsH.CreateMeeting(), http.MethodPost)
 
 	if err := srv.RegisterRoutes(); err != nil {
 		log.Fatalln(err)
