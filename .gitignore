@@ -27,6 +27,45 @@ go.work.sum
 # env file
 .env
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# Binaries for programs and plugins
+/bin
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Main bin
+main
+
+# Output of the go coverage tool
+*.out
+
+# Code coverage file
+coverage.out
+
+# dotenv environment variables file
+.env
+.env*.local
+*.env
+!local.env
+
+# macos
+.DS_Store
+
+# generated files
+*.lock
+
+# Go debug bin
+__debug***
+
+# AI agent
+.aider*
+
+# IDEs
+.idea
+.vscode
+.zed
