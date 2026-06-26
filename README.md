@@ -1,10 +1,9 @@
 # Doodle tech test
 
-
 ## How to run
-1: $ docker compose up -d --build
-2: Visit localhost:8080/docs/index.html for HTTP API
-3: Visit localhost:5050 for a postgres admin interface (opt)
+- 1: $ docker compose up -d --build
+- 2: Visit localhost:8080/docs/index.html for HTTP API
+- 3: Visit localhost:5050 for a postgres admin interface (opt)
 
 
 ## Architecture
