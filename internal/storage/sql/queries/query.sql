@@ -13,8 +13,7 @@ SELECT timeslot_id, user_id, start_at, end_at, duration_mins, created_at
 FROM doodle.timeslots
 WHERE timeslot_id = $1;
 
--- ListAllottedTimeslots returns a user's slots within a window, excluding any
--- that have already started, flagging which are booked.
+-- ListAllottedTimeslots returns a user's slots within a window, excluding any that have already started, flagging which are booked.
 -- name: ListAllottedTimeslots :many
 SELECT
     t.timeslot_id,
@@ -31,8 +30,7 @@ WHERE t.user_id = $1
     AND t.start_at >= sqlc.arg(now)
 ORDER BY t.start_at;
 
--- DeleteTimeslot removes a slot only if it is not booked. The row count tells
--- the caller whether it was deleted (1) or blocked/absent (0).
+-- DeleteTimeslot removes a slot only if it is not booked. The row count tells the caller whether it was deleted (1) or blocked/absent (0).
 -- name: DeleteTimeslot :execrows
 DELETE FROM doodle.timeslots t
 WHERE t.timeslot_id = $1
@@ -60,7 +58,8 @@ VALUES ($1, $2)
 ON CONFLICT DO NOTHING;
 
 -- ListCalendarMeetings returns the booked meetings on a user's calendar with
--- their attendee emails aggregated into an array.
+-- their participants emails.
+-- I dont like this solution but ran out of time.
 -- name: ListCalendarMeetings :many
 SELECT
     m.meeting_id,
