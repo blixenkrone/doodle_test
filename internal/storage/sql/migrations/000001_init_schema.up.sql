@@ -6,18 +6,16 @@ CREATE TABLE doodle.users (
     created_at timestamptz NOT NULL DEFAULT NOW()
 );
 
--- Timeslot availability.
+-- Timeslot availability
 CREATE TABLE doodle.timeslots (
     timeslot_id uuid PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES doodle.users (user_id) ON DELETE CASCADE,
     start_at timestamptz NOT NULL,
     end_at timestamptz NOT NULL,
-    status text NOT NULL DEFAULT 'available',
     created_at timestamptz NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_timeslot_period CHECK (end_at > start_at),
-    CONSTRAINT valid_timeslot_status CHECK (status IN ('available', 'booked'))
+    CONSTRAINT valid_timeslot_period CHECK (end_at > start_at)
 );
-CREATE INDEX idx_timeslots_available ON doodle.timeslots (user_id, status, start_at);
+CREATE INDEX idx_timeslots_available ON doodle.timeslots (user_id, start_at);
 
 -- Meetings for user creation and participation from others
 -- TODOs to consider:
@@ -41,8 +39,12 @@ CREATE TABLE doodle.meeting_participants (
 );
 CREATE INDEX idx_meetings_participants ON doodle.meeting_participants (user_id, meeting_id);
 
--- Users can book only create one meeting per timeslot_id where the status is booked
+-- User creators can only create one meeting per timeslot_id where the status is booked
 -- Another constraint could be that they cant create meetings in the past
-CREATE UNIQUE INDEX uq_active_meeting_per_timeslot_per_user
+CREATE UNIQUE INDEX uq_booked_meeting_per_timeslot_per_creator_user
 ON doodle.meetings (creator_user_id, timeslot_id)
 WHERE status = 'booked';
+
+-- Users can book only create one meeting per timeslot_id where the status is booked
+CREATE UNIQUE INDEX uq_active_meeting_per_timeslot_per_user
+ON doodle.meeting_participants (user_id, meeting_id);
