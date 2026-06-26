@@ -1,10 +1,19 @@
 # Doodle tech test
 
 ## How to run
-- 1: $ docker compose up -d --build
-- 2: Visit localhost:8080/docs/index.html for HTTP API
-- 3: Visit localhost:5050 for a postgres admin interface (opt)
+- `$ docker compose up -d --build`
+- Visit localhost:8080/docs/index.html for HTTP API
+- Visit localhost:5050 for a postgres admin interface (opt)
+Host: postgres
+DB: doodle
+User: doodle
+Pass: doodle
 
+For an easy smoke test/data seed, run:
+```sh
+chmod +x ./doodle_smoke.sh
+./doodle_smoke.sh
+```
 
 ## Architecture
 - RDB storage solution
