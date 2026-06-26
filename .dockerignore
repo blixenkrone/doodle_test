@@ -1,0 +1,8 @@
+.git
+bin
+coverage.out
+*.pdf
+*.md
+.github
+.vscode
+.idea
