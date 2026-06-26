@@ -1,0 +1,36 @@
+version: "2"
+
+linters:
+  default: standard
+  disable:
+    - errcheck
+  settings:
+    staticcheck:
+      checks:
+        - '-QF1005'
+        - '-SA9005'
+
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - staticcheck
+        text: "QF1005"
+      - linters:
+          - staticcheck
+        text: "comment on exported" # ST1020
+
+
+severity:
+  default: error
+  rules:
+    - linters:
+        - prealloc
+        - mnd
+        - maintidx
+        - interfacebloat
+      severity: info
+
+run:
+  allow-parallel-runners: true
+  timeout: 2m
