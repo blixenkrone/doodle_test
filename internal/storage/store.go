@@ -6,13 +6,21 @@ package storage
 import (
 	"context"
 	"errors"
+	"time"
 
+	"github.com/blixenkrone/sdk/storage/postgres"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ErrNotFound is returned when a row does not exist
 var ErrNotFound = errors.New("not found")
+
+// ErrSlotTaken is returned when a timeslot is already booked by a meeting. This
+// is the concurrency outcome: a losing racer for the same slot hits the
+// UNIQUE(timeslot_id) constraint on meetings.
+var ErrSlotTaken = errors.New("timeslot already booked")
 
 // Store wraps the sqlc-generated Queries with a connection pool so it can run
 // both pooled queries (q) and multi-statement transactions (withTx).
@@ -38,4 +46,69 @@ func (s *Store) withTx(ctx context.Context, fn func(q *Queries) error) error {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// AvailabilityWindow is a span of free time the user offers, sliced into slots
+// of the requested duration.
+type AvailabilityWindow struct {
+	StartAt time.Time
+	EndAt   time.Time
+}
+
+// CreateAvailability slices each window into back-to-back slots of durationMins
+// and inserts them atomically. A window shorter than one slot contributes
+// nothing. All slots are created in a single transaction so a partial failure
+// leaves no half-built availability.
+func (s *Store) CreateAvailability(ctx context.Context, userID uuid.UUID, windows []AvailabilityWindow, durationMins int32) ([]DoodleTimeslot, error) {
+	var created []DoodleTimeslot
+	slot := time.Duration(durationMins) * time.Minute
+
+	err := s.withTx(ctx, func(q *Queries) error {
+		for _, w := range windows {
+			for start := w.StartAt; !start.Add(slot).After(w.EndAt); start = start.Add(slot) {
+				ts, err := q.CreateTimeslot(ctx, CreateTimeslotParams{
+					TimeslotID:   uuid.New(),
+					UserID:       userID,
+					StartAt:      start,
+					EndAt:        start.Add(slot),
+					DurationMins: durationMins,
+				})
+				if err != nil {
+					return postgres.WrapPostgresError(err)
+				}
+				created = append(created, ts)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+// BookMeeting converts a timeslot into a meeting with its attendees in one
+// transaction. If the slot is already booked it returns ErrSlotTaken.
+func (s *Store) BookMeeting(ctx context.Context, arg CreateMeetingParams, attendees []string) (DoodleMeeting, error) {
+	var meeting DoodleMeeting
+	err := s.withTx(ctx, func(q *Queries) error {
+		m, err := q.CreateMeeting(ctx, arg)
+		if err != nil {
+			if postgres.IsUniqueConstraintErr(err) {
+				return ErrSlotTaken
+			}
+			return postgres.WrapPostgresError(err)
+		}
+		for _, email := range attendees {
+			if err := q.AddMeetingParticipant(ctx, AddMeetingParticipantParams{
+				MeetingID:     m.MeetingID,
+				AttendeeEmail: email,
+			}); err != nil {
+				return postgres.WrapPostgresError(err)
+			}
+		}
+		meeting = m
+		return nil
+	})
+	return meeting, err
 }

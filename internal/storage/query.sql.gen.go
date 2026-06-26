@@ -7,9 +7,94 @@ package storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const addMeetingParticipant = `-- name: AddMeetingParticipant :exec
+INSERT INTO doodle.meeting_participants (meeting_id, attendee_email)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+type AddMeetingParticipantParams struct {
+	MeetingID     uuid.UUID
+	AttendeeEmail string
+}
+
+func (q *Queries) AddMeetingParticipant(ctx context.Context, arg AddMeetingParticipantParams) error {
+	_, err := q.db.Exec(ctx, addMeetingParticipant, arg.MeetingID, arg.AttendeeEmail)
+	return err
+}
+
+const createMeeting = `-- name: CreateMeeting :one
+INSERT INTO doodle.meetings (meeting_id, timeslot_id, title, description, url)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING meeting_id, timeslot_id, title, description, url, created_at
+`
+
+type CreateMeetingParams struct {
+	MeetingID   uuid.UUID
+	TimeslotID  uuid.UUID
+	Title       string
+	Description string
+	Url         string
+}
+
+func (q *Queries) CreateMeeting(ctx context.Context, arg CreateMeetingParams) (DoodleMeeting, error) {
+	row := q.db.QueryRow(ctx, createMeeting,
+		arg.MeetingID,
+		arg.TimeslotID,
+		arg.Title,
+		arg.Description,
+		arg.Url,
+	)
+	var i DoodleMeeting
+	err := row.Scan(
+		&i.MeetingID,
+		&i.TimeslotID,
+		&i.Title,
+		&i.Description,
+		&i.Url,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createTimeslot = `-- name: CreateTimeslot :one
+INSERT INTO doodle.timeslots (timeslot_id, user_id, start_at, end_at, duration_mins)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING timeslot_id, user_id, start_at, end_at, duration_mins, created_at
+`
+
+type CreateTimeslotParams struct {
+	TimeslotID   uuid.UUID
+	UserID       uuid.UUID
+	StartAt      time.Time
+	EndAt        time.Time
+	DurationMins int32
+}
+
+func (q *Queries) CreateTimeslot(ctx context.Context, arg CreateTimeslotParams) (DoodleTimeslot, error) {
+	row := q.db.QueryRow(ctx, createTimeslot,
+		arg.TimeslotID,
+		arg.UserID,
+		arg.StartAt,
+		arg.EndAt,
+		arg.DurationMins,
+	)
+	var i DoodleTimeslot
+	err := row.Scan(
+		&i.TimeslotID,
+		&i.UserID,
+		&i.StartAt,
+		&i.EndAt,
+		&i.DurationMins,
+		&i.CreatedAt,
+	)
+	return i, err
+}
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO doodle.users (user_id, name)
@@ -27,4 +112,191 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (DoodleU
 	var i DoodleUser
 	err := row.Scan(&i.UserID, &i.Name, &i.CreatedAt)
 	return i, err
+}
+
+const deleteTimeslot = `-- name: DeleteTimeslot :execrows
+DELETE FROM doodle.timeslots t
+WHERE t.timeslot_id = $1
+    AND NOT EXISTS (
+        SELECT 1 FROM doodle.meetings m WHERE m.timeslot_id = t.timeslot_id
+    )
+`
+
+// DeleteTimeslot removes a slot only if it is not booked. The row count tells
+// the caller whether it was deleted (1) or blocked/absent (0).
+func (q *Queries) DeleteTimeslot(ctx context.Context, timeslotID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTimeslot, timeslotID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getTimeslot = `-- name: GetTimeslot :one
+SELECT timeslot_id, user_id, start_at, end_at, duration_mins, created_at
+FROM doodle.timeslots
+WHERE timeslot_id = $1
+`
+
+func (q *Queries) GetTimeslot(ctx context.Context, timeslotID uuid.UUID) (DoodleTimeslot, error) {
+	row := q.db.QueryRow(ctx, getTimeslot, timeslotID)
+	var i DoodleTimeslot
+	err := row.Scan(
+		&i.TimeslotID,
+		&i.UserID,
+		&i.StartAt,
+		&i.EndAt,
+		&i.DurationMins,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listAllottedTimeslots = `-- name: ListAllottedTimeslots :many
+SELECT
+    t.timeslot_id,
+    t.start_at,
+    t.end_at,
+    t.duration_mins,
+    EXISTS (
+        SELECT 1 FROM doodle.meetings m WHERE m.timeslot_id = t.timeslot_id
+    ) AS is_booked
+FROM doodle.timeslots t
+WHERE t.user_id = $1
+    AND t.start_at >= $2
+    AND t.start_at < $3
+    AND t.start_at >= $4
+ORDER BY t.start_at
+`
+
+type ListAllottedTimeslotsParams struct {
+	UserID    uuid.UUID
+	DateStart time.Time
+	DateEnd   time.Time
+	Now       time.Time
+}
+
+type ListAllottedTimeslotsRow struct {
+	TimeslotID   uuid.UUID
+	StartAt      time.Time
+	EndAt        time.Time
+	DurationMins int32
+	IsBooked     bool
+}
+
+// ListAllottedTimeslots returns a user's slots within a window, excluding any
+// that have already started, flagging which are booked.
+func (q *Queries) ListAllottedTimeslots(ctx context.Context, arg ListAllottedTimeslotsParams) ([]ListAllottedTimeslotsRow, error) {
+	rows, err := q.db.Query(ctx, listAllottedTimeslots,
+		arg.UserID,
+		arg.DateStart,
+		arg.DateEnd,
+		arg.Now,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllottedTimeslotsRow
+	for rows.Next() {
+		var i ListAllottedTimeslotsRow
+		if err := rows.Scan(
+			&i.TimeslotID,
+			&i.StartAt,
+			&i.EndAt,
+			&i.DurationMins,
+			&i.IsBooked,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCalendarMeetings = `-- name: ListCalendarMeetings :many
+SELECT
+    m.meeting_id,
+    m.title,
+    t.start_at,
+    t.end_at,
+    COALESCE(
+        array_agg(p.attendee_email) FILTER (WHERE p.attendee_email IS NOT NULL),
+        '{}'
+    )::text[] AS attendees
+FROM doodle.meetings m
+INNER JOIN doodle.timeslots t ON t.timeslot_id = m.timeslot_id
+LEFT JOIN doodle.meeting_participants p ON p.meeting_id = m.meeting_id
+WHERE t.user_id = $1
+GROUP BY m.meeting_id, m.title, t.start_at, t.end_at
+ORDER BY t.start_at
+`
+
+type ListCalendarMeetingsRow struct {
+	MeetingID uuid.UUID
+	Title     string
+	StartAt   time.Time
+	EndAt     time.Time
+	Attendees []string
+}
+
+// ListCalendarMeetings returns the booked meetings on a user's calendar with
+// their attendee emails aggregated into an array.
+func (q *Queries) ListCalendarMeetings(ctx context.Context, userID uuid.UUID) ([]ListCalendarMeetingsRow, error) {
+	rows, err := q.db.Query(ctx, listCalendarMeetings, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCalendarMeetingsRow
+	for rows.Next() {
+		var i ListCalendarMeetingsRow
+		if err := rows.Scan(
+			&i.MeetingID,
+			&i.Title,
+			&i.StartAt,
+			&i.EndAt,
+			&i.Attendees,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateTimeslot = `-- name: UpdateTimeslot :execrows
+UPDATE doodle.timeslots t
+SET start_at = $2, end_at = $3, duration_mins = $4
+WHERE t.timeslot_id = $1
+    AND NOT EXISTS (
+        SELECT 1 FROM doodle.meetings m WHERE m.timeslot_id = t.timeslot_id
+    )
+`
+
+type UpdateTimeslotParams struct {
+	TimeslotID   uuid.UUID
+	StartAt      time.Time
+	EndAt        time.Time
+	DurationMins int32
+}
+
+// UpdateTimeslot mutates a slot only if it is not booked.
+func (q *Queries) UpdateTimeslot(ctx context.Context, arg UpdateTimeslotParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateTimeslot,
+		arg.TimeslotID,
+		arg.StartAt,
+		arg.EndAt,
+		arg.DurationMins,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

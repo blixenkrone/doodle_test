@@ -6,10 +6,27 @@ package storage
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
+	AddMeetingParticipant(ctx context.Context, arg AddMeetingParticipantParams) error
+	CreateMeeting(ctx context.Context, arg CreateMeetingParams) (DoodleMeeting, error)
+	CreateTimeslot(ctx context.Context, arg CreateTimeslotParams) (DoodleTimeslot, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (DoodleUser, error)
+	// DeleteTimeslot removes a slot only if it is not booked. The row count tells
+	// the caller whether it was deleted (1) or blocked/absent (0).
+	DeleteTimeslot(ctx context.Context, timeslotID uuid.UUID) (int64, error)
+	GetTimeslot(ctx context.Context, timeslotID uuid.UUID) (DoodleTimeslot, error)
+	// ListAllottedTimeslots returns a user's slots within a window, excluding any
+	// that have already started, flagging which are booked.
+	ListAllottedTimeslots(ctx context.Context, arg ListAllottedTimeslotsParams) ([]ListAllottedTimeslotsRow, error)
+	// ListCalendarMeetings returns the booked meetings on a user's calendar with
+	// their attendee emails aggregated into an array.
+	ListCalendarMeetings(ctx context.Context, userID uuid.UUID) ([]ListCalendarMeetingsRow, error)
+	// UpdateTimeslot mutates a slot only if it is not booked.
+	UpdateTimeslot(ctx context.Context, arg UpdateTimeslotParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

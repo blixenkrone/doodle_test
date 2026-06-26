@@ -11,27 +11,26 @@ import (
 )
 
 type DoodleMeeting struct {
-	MeetingID     uuid.UUID
-	CreatorUserID uuid.UUID
-	TimeslotID    uuid.UUID
-	Status        string
-	StartAt       time.Time
-	EndAt         time.Time
-	CreatedAt     time.Time
+	MeetingID   uuid.UUID
+	TimeslotID  uuid.UUID
+	Title       string
+	Description string
+	Url         string
+	CreatedAt   time.Time
 }
 
 type DoodleMeetingParticipant struct {
-	UserID    uuid.UUID
-	MeetingID uuid.UUID
+	MeetingID     uuid.UUID
+	AttendeeEmail string
 }
 
 type DoodleTimeslot struct {
-	TimeslotID uuid.UUID
-	UserID     uuid.UUID
-	StartAt    time.Time
-	EndAt      time.Time
-	Status     string
-	CreatedAt  time.Time
+	TimeslotID   uuid.UUID
+	UserID       uuid.UUID
+	StartAt      time.Time
+	EndAt        time.Time
+	DurationMins int32
+	CreatedAt    time.Time
 }
 
 type DoodleUser struct {
