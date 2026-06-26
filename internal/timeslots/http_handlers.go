@@ -5,6 +5,7 @@ package timeslots
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -80,7 +81,7 @@ func (h HTTPHandler) CreateTimeslot() http.HandlerFunc {
 			return
 		}
 		if req.DurationMins < minDurationMins || req.DurationMins > maxDurationMins {
-			sdkhttp.JSONError(w, http.StatusBadRequest, errors.New("duration_mins must be between 10 and 60"))
+			sdkhttp.JSONError(w, http.StatusBadRequest, fmt.Errorf("duration_mins must be between %d and %d", minDurationMins, maxDurationMins))
 			return
 		}
 		if len(req.Availability) == 0 {
@@ -114,8 +115,6 @@ func (h HTTPHandler) CreateTimeslot() http.HandlerFunc {
 		}
 	}
 }
-
-// --- List allotted timeslots ------------------------------------------------
 
 type AllottedTimeslot struct {
 	ID           string    `json:"id"`
@@ -183,8 +182,6 @@ func (h HTTPHandler) GetAllotted() http.HandlerFunc {
 		}
 	}
 }
-
-// --- Update / delete timeslot ----------------------------------------------
 
 type UpdateTimeslotRequest struct {
 	StartAt      time.Time `json:"time_start"`
@@ -275,8 +272,6 @@ func (h HTTPHandler) DeleteTimeslot() http.HandlerFunc {
 	}
 }
 
-// --- Create meeting ---------------------------------------------------------
-
 type CreateMeetingRequest struct {
 	TimeslotID  string   `json:"id"`
 	Title       string   `json:"title"`
@@ -289,8 +284,7 @@ type CreateMeetingResponse struct {
 	MeetingID string `json:"meeting_id"`
 }
 
-// CreateMeeting books a timeslot as a meeting. Concurrent bookings of the same
-// slot are serialized by the DB; the loser receives 409.
+// CreateMeeting books a timeslot as a meeting.
 // @Summary Book a meeting on a timeslot
 // @Tags meetings
 // @Accept json
@@ -340,8 +334,6 @@ func (h HTTPHandler) CreateMeeting() http.HandlerFunc {
 		}
 	}
 }
-
-// --- Personal calendar ------------------------------------------------------
 
 type CalendarMeeting struct {
 	ID            string    `json:"id"`

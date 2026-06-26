@@ -49,7 +49,6 @@ func TestCreateAvailabilitySlicesWindow(t *testing.T) {
 	uid := f.newUser(t)
 
 	start := time.Now().Add(time.Hour).UTC().Truncate(time.Minute)
-	// A 60-minute window sliced into 30-minute slots -> 2 slots.
 	slots, err := f.store.CreateAvailability(ctx, uid, []storage.AvailabilityWindow{
 		{StartAt: start, EndAt: start.Add(60 * time.Minute)},
 	}, 30)
@@ -72,7 +71,6 @@ func TestListAllottedFiltersPastAndFlagsBooked(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, slots, 2)
 
-	// A past slot inserted directly should be filtered out by ListAllotted.
 	_, err = f.store.CreateTimeslot(ctx, storage.CreateTimeslotParams{
 		TimeslotID:   uuid.New(),
 		UserID:       uid,
@@ -82,7 +80,6 @@ func TestListAllottedFiltersPastAndFlagsBooked(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Book the first future slot.
 	_, err = f.store.BookMeeting(ctx, storage.CreateMeetingParams{
 		MeetingID:  uuid.New(),
 		TimeslotID: slots[0].TimeslotID,
@@ -122,10 +119,9 @@ func TestBookMeetingConcurrentOnlyOneWins(t *testing.T) {
 
 	const racers = 8
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 	var ok, taken int
 	wg.Add(racers)
-	for i := 0; i < racers; i++ {
+	for range racers {
 		go func() {
 			defer wg.Done()
 			_, err := f.store.BookMeeting(ctx, storage.CreateMeetingParams{
@@ -133,8 +129,6 @@ func TestBookMeetingConcurrentOnlyOneWins(t *testing.T) {
 				TimeslotID: slotID,
 				Title:      "race",
 			}, nil)
-			mu.Lock()
-			defer mu.Unlock()
 			switch {
 			case err == nil:
 				ok++
@@ -160,14 +154,12 @@ func TestDeleteAndUpdateBlockedWhenBooked(t *testing.T) {
 	require.NoError(t, err)
 	slotID := slots[0].TimeslotID
 
-	// Unbooked: delete is blocked? no -> succeeds. Update succeeds.
 	rows, err := f.store.UpdateTimeslot(ctx, storage.UpdateTimeslotParams{
 		TimeslotID: slotID, StartAt: future, EndAt: future.Add(20 * time.Minute), DurationMins: 20,
 	})
 	require.NoError(t, err)
 	require.EqualValues(t, 1, rows)
 
-	// Book it, then update/delete must be blocked (0 rows affected).
 	_, err = f.store.BookMeeting(ctx, storage.CreateMeetingParams{
 		MeetingID: uuid.New(), TimeslotID: slotID, Title: "Standup",
 	}, nil)

@@ -23,9 +23,7 @@ CREATE TABLE doodle.timeslots (
 -- "allotted" and "calendar" range queries.
 CREATE INDEX idx_timeslots_user_start ON doodle.timeslots (user_id, start_at);
 
--- A booked meeting occupies exactly one timeslot. The UNIQUE constraint on
--- timeslot_id is the concurrency guard: two racing bookings for the same slot
--- cannot both succeed, the loser gets a unique-violation (mapped to 409).
+-- A booked meeting occupies exactly one timeslot. The UNIQUE constraint on timeslot_id is the concurrency guard, since two racing meetings for the same slot cannot both succeed. Loser gets a unique-violation (mapped to 409).
 CREATE TABLE doodle.meetings (
     meeting_id uuid PRIMARY KEY,
     timeslot_id uuid NOT NULL UNIQUE REFERENCES doodle.timeslots (timeslot_id) ON DELETE CASCADE,

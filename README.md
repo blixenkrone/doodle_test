@@ -1,5 +1,12 @@
 # Doodle tech test
- 
+
+
+## How to run
+1: $ docker compose up -d --build
+2: Visit localhost:8080/docs/index.html for HTTP API
+3: Visit localhost:5050 for a postgres admin interface (opt)
+
+
 ## Architecture
 - RDB storage solution
 - REST API
@@ -13,44 +20,31 @@
 - Unit test
 - Metrics
 
-
 ## API design
 
-1. Create a user
-POST /users
-{name}
+1 POST /users  
+Create a new user for onboarding purposes
 
-1. Create available timeslot
-POST /timeslots
-{
-  availability: [{availability_time_start, availability_time_to}],
-  duration_mins,
-}
-Docs:
+POST /timeslots  
+Create a new timeslot 
 - Could consider an expires_at property
 - Max duration of 60 mins
 
-2. Get allotted timeslots:
-GET /timeslots/allotted?date_start=XYZ&date_end=DOE
-[{  id, time_start, duration, is_booked  }]
-Docs:
-- Constraint: Filter out past timeslots
+GET /timeslots/allotted  
+Get allotted/created timeslots as a user
 
-3. Update/delete timeslot
-Docs:
+GET /timeslots/calendar  
+See calendar
+
+PATCH /timeslots/{id}  
+Update timeslot
 - Constraint: Cant be done if there's a meeting booked at the time
 
-4. Create meeting:
-POST /timeslots/meeting
-{  id, title, descr, attendees, url },
-Docs:
-- Constraint: No auth, anyone can book anything.
-- Future: Make it shareable with only certain emails
+DELETE /timeslots/{id}  
+- Constraint: Cant be done if there's a meeting booked at the time
 
-5. See personal calendar
-GET /timeslots/calendar?
-[{ id, datetime_start, datetime_end, attendees }]
-
+POST /timeslots/meeting  
+- Create meeting
 
 ## Implementation details
 - Avoid clashing meetings, ie. data races
@@ -71,3 +65,6 @@ GET /timeslots/calendar?
 - Meeting reminders
 - Max meetings per day within a timeslot to allow for breaks etc.
 
+
+## Closing args
+- I didn't get to properly implement the marking time slots as busy or free as a status type property. I would've implemented a simple endpoint for this ensuring the same constraints as updating the timeslot (as already implemented).
