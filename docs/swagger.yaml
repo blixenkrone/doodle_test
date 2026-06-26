@@ -12,12 +12,94 @@ definitions:
     type: object
   internal_onboarding.CreateUserRequest:
     properties:
-      slug:
+      name:
         type: string
     type: object
   internal_onboarding.CreateUserResponse:
     properties:
       id:
+        type: string
+    type: object
+  internal_timeslots.AllottedTimeslot:
+    properties:
+      duration_mins:
+        type: integer
+      id:
+        type: string
+      is_booked:
+        type: boolean
+      time_end:
+        type: string
+      time_start:
+        type: string
+    type: object
+  internal_timeslots.Availability:
+    properties:
+      availability_time_start:
+        type: string
+      availability_time_to:
+        type: string
+    type: object
+  internal_timeslots.CalendarMeeting:
+    properties:
+      attendees:
+        items:
+          type: string
+        type: array
+      datetime_end:
+        type: string
+      datetime_start:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+    type: object
+  internal_timeslots.CreateMeetingRequest:
+    properties:
+      attendees:
+        items:
+          type: string
+        type: array
+      descr:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  internal_timeslots.CreateMeetingResponse:
+    properties:
+      meeting_id:
+        type: string
+    type: object
+  internal_timeslots.CreateTimeslotRequest:
+    properties:
+      availability:
+        items:
+          $ref: '#/definitions/internal_timeslots.Availability'
+        type: array
+      duration_mins:
+        type: integer
+      user_id:
+        type: string
+    type: object
+  internal_timeslots.CreateTimeslotResponse:
+    properties:
+      timeslot_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_timeslots.UpdateTimeslotRequest:
+    properties:
+      duration_mins:
+        type: integer
+      time_end:
+        type: string
+      time_start:
         type: string
     type: object
   sdk_http.HTTPError:
@@ -63,6 +145,197 @@ paths:
       summary: Container Readiness Probe.
       tags:
       - probe
+  /timeslots:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_timeslots.CreateTimeslotRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_timeslots.CreateTimeslotResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+      summary: Create available timeslots
+      tags:
+      - timeslots
+  /timeslots/{id}:
+    delete:
+      parameters:
+      - description: timeslot id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+      summary: Delete a timeslot
+      tags:
+      - timeslots
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: timeslot id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_timeslots.UpdateTimeslotRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+      summary: Update a timeslot
+      tags:
+      - timeslots
+  /timeslots/allotted:
+    get:
+      parameters:
+      - description: user id
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: RFC3339 window start
+        in: query
+        name: date_start
+        required: true
+        type: string
+      - description: RFC3339 window end
+        in: query
+        name: date_end
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_timeslots.AllottedTimeslot'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+      summary: Get allotted timeslots
+      tags:
+      - timeslots
+  /timeslots/calendar:
+    get:
+      parameters:
+      - description: user id
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_timeslots.CalendarMeeting'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+      summary: See personal calendar
+      tags:
+      - meetings
+  /timeslots/meeting:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_timeslots.CreateMeetingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_timeslots.CreateMeetingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+      summary: Book a meeting on a timeslot
+      tags:
+      - meetings
   /users:
     post:
       consumes:
