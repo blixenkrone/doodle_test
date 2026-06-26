@@ -1,0 +1,34 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "internal/storage/sql/migrations/"
+    queries: "internal/storage/sql/queries"
+    gen:
+      go:
+        package: "storage"
+        out: "internal/storage/"
+        sql_package: "pgx/v5"
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_enum_valid_method: true
+        output_files_suffix: .gen.go
+        output_db_file_name: db.gen.go
+        output_models_file_name: models.gen.go
+        output_querier_file_name: querier.gen.go
+        overrides:
+          - db_type: "uuid"
+            nullable: false
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "uuid"
+            nullable: true
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - db_type: "timestamptz"
+            go_type: "time.Time"
+rules:
+  - name: postgresql-query-too-costly
+    message: "Too costly"
+    rule: "postgresql.explain.plan.total_cost > 300.0"
