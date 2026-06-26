@@ -1,0 +1,97 @@
+basePath: /
+definitions:
+  github_com_blixenkrone_sdk_http.HTTPError:
+    description: Error response
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: bad input
+        type: string
+    type: object
+  internal_onboarding.CreateUserRequest:
+    properties:
+      slug:
+        type: string
+    type: object
+  internal_onboarding.CreateUserResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  sdk_http.HTTPError:
+    description: Error response
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: bad input
+        type: string
+    type: object
+info:
+  contact:
+    name: test
+  description: Doodle API
+  title: API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Probe verifying that the container has started.
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: Container Liveness Probe.
+      tags:
+      - probe
+  /ready:
+    get:
+      description: Probe verifying that the app is fully ready to serve requests.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/sdk_http.HTTPError'
+      summary: Container Readiness Probe.
+      tags:
+      - probe
+  /users:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_onboarding.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_onboarding.CreateUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_blixenkrone_sdk_http.HTTPError'
+      summary: Create an User (tenant)
+      tags:
+      - onboarding
+schemes:
+- http
+swagger: "2.0"
