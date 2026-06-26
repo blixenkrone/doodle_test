@@ -1,19 +1,10 @@
 CREATE SCHEMA IF NOT EXISTS doodle;
 
--- TODO: Consider tenacy for users if they belong to org. Can be used to derive from JWT.
--- CREATE TABLE doodle.organizations (
---     organization_id uuid PRIMARY KEY,
---     slug text NOT NULL UNIQUE,
---     region text NOT NULL DEFAULT 'eu',
---     created_at timestamptz NOT NULL DEFAULT NOW()
--- );
-
 CREATE TABLE doodle.users (
     user_id uuid PRIMARY KEY,
     name text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT NOW()
 );
-CREATE INDEX idx_users_org ON doodle.doctors (organization_id);
 
 -- Timeslot availability.
 CREATE TABLE doodle.timeslots (
@@ -42,14 +33,16 @@ CREATE TABLE doodle.meetings (
     created_at timestamptz NOT NULL DEFAULT NOW(),
     CONSTRAINT valid_meeting_status CHECK (status IN ('booked', 'cancelled', 'completed'))
 );
-CREATE INDEX idx_meetings_user ON doodle.meetings (user_id, start_at);
+CREATE INDEX idx_meetings_creator_user ON doodle.meetings (creator_user_id, start_at);
 
 CREATE TABLE doodle.meeting_participants (
     user_id uuid NOT NULL REFERENCES doodle.users (user_id),
     meeting_id uuid NOT NULL REFERENCES doodle.meetings (meeting_id)
 );
+CREATE INDEX idx_meetings_participants ON doodle.meeting_participants (user_id, meeting_id);
 
--- Users can book only one meeting per timeslot_id - at most one active (ie booked) appointment.
+-- Users can book only create one meeting per timeslot_id where the status is booked
+-- Another constraint could be that they cant create meetings in the past
 CREATE UNIQUE INDEX uq_active_meeting_per_timeslot_per_user
-ON doodle.meetings (user_id, timeslot_id)
+ON doodle.meetings (creator_user_id, timeslot_id)
 WHERE status = 'booked';

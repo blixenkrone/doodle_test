@@ -91,7 +91,7 @@ func main() {
 	srv.AddRoute("/users", onboardingH.CreateUser(), http.MethodPost)
 
 	// Timeslot management
-	srv.AddRoute("/timeslots", meetings.RegisterTimeslot(), http.MethodPost)
+	// srv.AddRoute("/timeslots", meetings.RegisterTimeslot(), http.MethodPost)
 	// srv.AddRoute("/meetings", meetings.meetings(), http.MethodPost)
 	// srv.AddRoute("/meetings/{meetings}", meetings.Overview(), http.MethodGet)
 

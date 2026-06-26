@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -43,7 +42,7 @@ func RunMigrations(t *testing.T, workflowName string) *docker.Resource[*pgxpool.
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if serr, err := migrator.Close(); serr != nil || err != nil {
-			t.Fatal(fmt.Sprintf("source: %v - driver: %v", serr, err))
+			t.Fatalf("source: %v - driver: %v", serr, err)
 		}
 	})
 	require.NoError(t, migrator.Up())

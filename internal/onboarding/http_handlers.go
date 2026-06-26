@@ -1,5 +1,3 @@
-// Package onboarding handles tenant and actor setup: creating organizations,
-// doctors, patients, and registering patient webhooks.
 package onboarding
 
 import (

@@ -34,7 +34,7 @@ func (s *Store) withTx(ctx context.Context, fn func(q *Queries) error) error {
 	}
 	defer tx.Rollback(context.WithoutCancel(ctx))
 
-	if err := fn(s.Queries.WithTx(tx)); err != nil {
+	if err := fn(s.WithTx(tx)); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
