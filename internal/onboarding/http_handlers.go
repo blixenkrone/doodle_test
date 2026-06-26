@@ -26,7 +26,7 @@ func NewHTTPHandler(logger logger.Logger, store onboardingStore) HTTPHandler {
 }
 
 type CreateUserRequest struct {
-	Name string `json:"slug"`
+	Name string `json:"name"`
 }
 
 type CreateUserResponse struct {
@@ -34,7 +34,7 @@ type CreateUserResponse struct {
 }
 
 // ASCII letters and digits
-var userNameRequirementRegexp = regexp.MustCompile("/^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/")
+var userNameRequirementRegexp = regexp.MustCompile(`^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$`)
 
 // CreateUser onboards a new tenant (hospital User).
 // @Summary Create an User (tenant)
