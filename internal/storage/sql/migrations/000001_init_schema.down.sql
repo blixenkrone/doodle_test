@@ -1,11 +1,4 @@
-DROP TABLE IF EXISTS corti.audit_log;
-DROP TABLE IF EXISTS corti.transcription_sessions;
-DROP TABLE IF EXISTS corti.diagnoses;
-DROP TABLE IF EXISTS corti.prescriptions;
-DROP TABLE IF EXISTS corti.notes;
-DROP TABLE IF EXISTS corti.appointments;
-DROP TABLE IF EXISTS corti.timeslots;
-DROP TABLE IF EXISTS corti.patients;
-DROP TABLE IF EXISTS corti.doctors;
-DROP TABLE IF EXISTS corti.organizations;
-DROP SCHEMA IF EXISTS corti;
+DROP TABLE IF EXISTS doodle.meetings;
+DROP TABLE IF EXISTS doodle.timeslots;
+DROP TABLE IF EXISTS doodle.users;
+DROP SCHEMA IF EXISTS doodle;
